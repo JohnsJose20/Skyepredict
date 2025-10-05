@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkyPredict Demo</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
     <style>
         * {
             margin: 0;
@@ -100,28 +96,6 @@
             display: block;
         }
 
-        .obstruction-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 1.2rem;
-            text-align: center;
-            z-index: 10;
-            backdrop-filter: blur(5px);
-        }
-
-        .obstruction-overlay.hidden {
-            display: none;
-        }
-
         .controls {
             display: flex;
             flex-wrap: wrap;
@@ -148,11 +122,7 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
-
-        button:active {
-            transform: translateY(0);
-        }
-
+        
         button:disabled {
             background: #6c757d;
             cursor: not-allowed;
@@ -160,111 +130,20 @@
             box-shadow: none;
         }
 
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-left: auto;
-        }
-
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background: linear-gradient(135deg, #4776E6, #8E54E9);
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        .results {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .result-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .result-card h3 {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .result-card h3 i {
-            margin-right: 10px;
-        }
-
         .prediction {
-            font-size: 1.1rem; /* Adjusted for longer text from Gemini */
-            font-weight: bold;
-            text-align: center;
+            font-size: 1.1rem;
+            font-weight: normal;
+            text-align: left;
             margin: 15px 0;
-            padding: 10px;
+            padding: 15px;
             border-radius: 10px;
             background: rgba(0, 0, 0, 0.2);
-            min-height: 80px; /* Ensure space for text */
+            min-height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-
-        .rain-likely {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        }
-
-        .rain-possible {
-            background: linear-gradient(135deg, #f7971e, #ffd200);
-        }
-
-        .no-rain {
-            background: linear-gradient(135deg, #00b09b, #96c93d);
-        }
-
+        
         .metric {
             display: flex;
             justify-content: space-between;
@@ -274,8 +153,6 @@
         }
 
         .metric:last-child {
-            margin-bottom: 0;
-            padding-bottom: 0;
             border-bottom: none;
         }
 
@@ -296,26 +173,6 @@
             background: linear-gradient(135deg, #4776E6, #8E54E9);
             border-radius: 4px;
             transition: width 0.5s ease;
-        }
-
-        .confidence-high {
-            background: linear-gradient(135deg, #00b09b, #96c93d);
-        }
-
-        .confidence-medium {
-            background: linear-gradient(135deg, #f7971e, #ffd200);
-        }
-
-        .confidence-low {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 20px;
-            font-size: 0.9rem;
-            opacity: 0.7;
         }
 
         .loading {
@@ -368,7 +225,7 @@
     <div class="container">
         <header>
             <h1>SkyPredict</h1>
-            <p class="tagline">Real-time rain prediction using your camera and environmental data</p>
+            <p class="tagline">Hyperlocal rain prediction using your camera and live weather data.</p>
         </header>
 
         <div class="dashboard">
@@ -379,30 +236,15 @@
                         <video id="video" autoplay playsinline></video>
                         <canvas id="frozenCanvas" style="display: none;"></canvas>
                         <div class="image-label" id="topLabel" style="display: none;">Frozen Image</div>
-                        <div class="obstruction-overlay hidden" id="obstructionOverlay">
-                            <i style="font-size: 3rem; margin-bottom: 15px;">⚠️</i>
-                            <p id="obstructionMessage">Obstruction detected</p>
-                        </div>
                     </div>
                     <div class="canvas-container">
                         <canvas id="canvas"></canvas>
-                        <div class="image-label" id="bottomLabel" style="display: none;">Negative Image</div>
+                        <div class="image-label" id="bottomLabel" style="display: none;">Processed Image</div>
                     </div>
                 </div>
                 <div class="controls">
-                    <button id="startBtn">
-                        <i>▶️</i> Start Camera
-                    </button>
-                    <button id="captureBtn" disabled>
-                        <i>🌧️</i> Analyze Sky
-                    </button>
-                    <div class="toggle-container">
-                        <label for="maskToggle">Sky Masking</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="maskToggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                    <button id="startBtn"><i>▶️</i> Start Camera</button>
+                    <button id="captureBtn" disabled><i>🌧️</i> Analyze Sky</button>
                 </div>
                 <div class="status">
                     <div class="status-dot" id="cameraStatus"></div>
@@ -414,7 +256,6 @@
                 <h2><i>📊</i> Prediction Results</h2>
                 <div id="output">
                     <div class="prediction" id="prediction">—</div>
-                    
                     <div class="metric">
                         <span>Rain Probability</span>
                         <span class="metric-value" id="rainProbability">—</span>
@@ -422,124 +263,62 @@
                     <div class="progress-bar">
                         <div class="progress" id="rainProbabilityBar" style="width: 0%"></div>
                     </div>
-                    
                     <div class="metric">
-                        <span>Estimated Rain Rate</span>
-                        <span class="metric-value" id="rainRate">— mm/hr</span>
-                    </div>
-                    
-                    <div class="metric">
-                        <span>Cloudiness</span>
+                        <span>Image Cloud Cover</span>
                         <span class="metric-value" id="cloudiness">—</span>
                     </div>
                     <div class="progress-bar">
                         <div class="progress" id="cloudinessBar" style="width: 0%"></div>
                     </div>
-                    
-                    <div class="metric">
-                        <span>Sky Clarity</span>
-                        <span class="metric-value" id="skyClarity">—</span>
+                     <div class="metric">
+                        <span>AI Confidence</span>
+                        <span class="metric-value" id="confidence">—</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress" id="skyClarityBar" style="width: 0%"></div>
+                        <div class="progress" id="confidenceBar" style="width: 0%"></div>
                     </div>
                 </div>
-                
-                <div class="status">
+                 <div class="status">
                     <div class="status-dot" id="analysisStatus"></div>
                     <span id="analysisStatusText">Ready for analysis</span>
                 </div>
             </div>
         </div>
-
-        <div class="results">
-            <div class="result-card">
-                <h3><i>🌍</i> Environmental Data</h3>
+        
+        <div class="dashboard">
+             <div class="result-card card">
+                <h3><i>🌍</i> Live Environmental Data (Koovappally)</h3>
                 <div class="metric">
                     <span>Humidity</span>
                     <span class="metric-value" id="humidity">—%</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress" id="humidityBar" style="width: 0%"></div>
-                </div>
-                
                 <div class="metric">
-                    <span>Cloud Cover</span>
+                    <span>API Cloud Cover</span>
                     <span class="metric-value" id="cloudCover">—%</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress" id="cloudCoverBar" style="width: 0%"></div>
-                </div>
-                
                 <div class="metric">
                     <span>Temperature</span>
                     <span class="metric-value" id="temperature">—°C</span>
                 </div>
             </div>
-            
-            <div class="result-card">
-                <h3><i>📈</i> Analysis Metrics</h3>
-                <div class="metric">
-                    <span>Edge Density</span>
-                    <span class="metric-value" id="edgeDensity">—</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress" id="edgeDensityBar" style="width: 0%"></div>
-                </div>
-                
-                <div class="metric">
-                    <span>Blue Channel</span>
-                    <span class="metric-value" id="blueChannel">—</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress" id="blueChannelBar" style="width: 0%"></div>
-                </div>
-                
-                <div class="metric">
+             <div class="result-card card">
+                <h3><i>⏱️</i> Analysis Metrics</h3>
+                 <div class="metric">
                     <span>Processing Time</span>
                     <span class="metric-value" id="processingTime">— ms</span>
                 </div>
             </div>
-            
-            <div class="result-card">
-                <h3><i>🔮</i> Forecast</h3>
-                <div class="metric">
-                    <span>Next 1 hour</span>
-                    <span class="metric-value" id="next1Hour">—</span>
-                </div>
-                <div class="metric">
-                    <span>Next 3 hours</span>
-                    <span class="metric-value" id="next3Hours">—</span>
-                </div>
-                <div class="metric">
-                    <span>Next 6 hours</span>
-                    <span class="metric-value" id="next6Hours">—</span>
-                </div>
-                <div class="metric">
-                    <span>Confidence</span>
-                    <span class="metric-value" id="confidence">—</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress" id="confidenceBar" style="width: 0%"></div>
-                </div>
-            </div>
         </div>
 
-        <footer>
-            <p>SkyPredict Demo | Real-time rain prediction using computer vision and environmental data fusion</p>
-        </footer>
     </div>
 
     <script>
-    // --- START OF NEW SCRIPT ---
-
-    // DOM Elements
+    // --- DOM Elements ---
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const frozenCanvas = document.getElementById('frozenCanvas');
     const startBtn = document.getElementById('startBtn');
     const captureBtn = document.getElementById('captureBtn');
-    const maskToggle = document.getElementById('maskToggle');
     const cameraStatus = document.getElementById('cameraStatus');
     const cameraStatusText = document.getElementById('cameraStatusText');
     const analysisStatus = document.getElementById('analysisStatus');
@@ -547,323 +326,170 @@
     const topLabel = document.getElementById('topLabel');
     const bottomLabel = document.getElementById('bottomLabel');
     
-    // Result elements
+    // --- Result Elements ---
     const predictionEl = document.getElementById('prediction');
     const rainProbabilityEl = document.getElementById('rainProbability');
     const rainProbabilityBar = document.getElementById('rainProbabilityBar');
+    const cloudinessEl = document.getElementById('cloudiness');
+    const cloudinessBar = document.getElementById('cloudinessBar');
+    const confidenceEl = document.getElementById('confidence');
+    const confidenceBar = document.getElementById('confidenceBar');
     const humidityEl = document.getElementById('humidity');
-    const humidityBar = document.getElementById('humidityBar');
     const cloudCoverEl = document.getElementById('cloudCover');
-    const cloudCoverBar = document.getElementById('cloudCoverBar');
     const temperatureEl = document.getElementById('temperature');
     const processingTimeEl = document.getElementById('processingTime');
 
-
-    // Canvas context
+    // --- Canvas & State ---
     const ctx = canvas.getContext('2d');
     const frozenCtx = frozenCanvas.getContext('2d');
-    canvas.width = 640;
-    canvas.height = 480;
-    frozenCanvas.width = 640;
-    frozenCanvas.height = 480;
-
-    // State variables
+    [canvas, frozenCanvas].forEach(c => { c.width = 640; c.height = 480; });
     let isCameraActive = false;
     let stream = null;
     let isAnalyzing = false;
     let isFrozen = false;
     
-    // In index.html, replace the old Gemini functions with these:
+    // --- API & LOGIC FUNCTIONS ---
 
-/**
- * Asks our secure Vercel function if the provided image is a valid sky photo.
- * @param {string} imageDataBase64 The base64-encoded image data.
- * @returns {Promise<boolean>} True if the image is approved, false otherwise.
- */
-async function isSkyImageApproved(imageDataBase64) {
-    const url = '/api/gemini'; // This is our new secure endpoint
-
-    const requestBody = {
-        "contents": [{
-            "parts": [
-                { "text": "Analyze this image. Is the primary subject the sky, clouds, sunrise, or sunset? There should be no significant obstructions like buildings, people, or indoor objects. Answer with only 'YES' or 'NO'." },
-                {
-                    "inline_data": {
-                        "mime_type": "image/jpeg",
-                        "data": imageDataBase64
-                    }
-                }
-            ]
-        }],
-        "generationConfig": { "maxOutputTokens": 5 }
-    };
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            console.error("API Error:", response.status, await response.text());
-            analysisStatusText.textContent = 'Approval API Error.';
-            return false;
+    /**
+     * Fetches real-time weather data from the Open-Meteo API.
+     * @returns {Promise<object|null>} An object with current weather or null on failure.
+     */
+    async function getCurrentWeather() {
+        analysisStatusText.innerHTML = '<span class="loading"></span> Fetching live weather...';
+        const latitude = 9.55; // Koovappally, Kerala
+        const longitude = 76.77;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,cloud_cover`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            const data = await response.json();
+            return {
+                temperature: data.current.temperature_2m,
+                humidity: data.current.relative_humidity_2m,
+                cloudCover: data.current.cloud_cover,
+            };
+        } catch (error) {
+            console.error("Error fetching weather:", error);
+            return null;
         }
-
-        const data = await response.json();
-        const textResponse = data.candidates[0].content.parts[0].text;
-        console.log("Gemini Approval Response:", textResponse);
-        return textResponse.trim().toUpperCase() === 'YES';
-
-    } catch (error) {
-        console.error("Error calling our API:", error);
-        analysisStatusText.textContent = 'Network error during approval.';
-        return false;
     }
-}
-
-/**
- * Asks our secure Vercel function for a detailed weather analysis.
- * @param {string} imageDataBase64 The base64-encoded image data.
- * @param {object} weatherData An object with humidity, cloudCover, and temperature.
- * @returns {Promise<string>} The textual weather forecast from Gemini.
- */
-async function getFusedWeatherAnalysis(imageDataBase64, weatherData) {
-    const url = '/api/gemini'; // Use the same secure endpoint
-
-    const prompt = `You are a weather prediction assistant. Based on this real-time image of the sky and the following environmental data for Kozhikode, Kerala, India:
-    - Humidity: ${weatherData.humidity}%
-    - Cloud Cover: ${weatherData.cloudCover}%
-    - Temperature: ${weatherData.temperature}°C
-    Provide a short, user-friendly weather prediction (2-3 sentences). Focus on the immediate likelihood of rain.`;
-
-    const requestBody = {
-        "contents": [{
-            "parts": [
-                { "text": prompt },
-                {
-                    "inline_data": {
-                        "mime_type": "image/jpeg",
-                        "data": imageDataBase64
-                    }
-                }
-            ]
-        }]
-    };
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            return "Could not get a detailed analysis.";
+    
+    /**
+     * Sends image and weather data to our secure Vercel function for a fused analysis.
+     * @param {string} imageDataBase64 The base64-encoded image data.
+     * @param {object} weatherData An object with live weather data.
+     * @returns {Promise<object|null>} The parsed JSON response from the AI.
+     */
+    async function getSmartAnalysis(imageDataBase64, weatherData) {
+        analysisStatusText.innerHTML = '<span class="loading"></span> Analyzing sky & weather...';
+        const url = '/api/gemini'; // Our secure Vercel endpoint
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageDataBase64, weatherData })
+            });
+            if (!response.ok) {
+                console.error("API Error:", response.status, await response.text());
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
+            console.error("Error calling our API:", error);
+            return null;
         }
-
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-
-    } catch (error) {
-        console.error("Error calling our API for analysis:", error);
-        return "Analysis failed due to a network error.";
     }
-}
 
+    // --- CORE APPLICATION FUNCTIONS ---
 
-    // --- MODIFIED CORE FUNCTIONS ---
-
-    // Start webcam
     async function startWebcam() {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { 
-                    facingMode: "environment",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                },
-                audio: false
-            });
-            
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
             await video.play();
-            
             isCameraActive = true;
-            isAnalyzing = false;
             isFrozen = false;
             cameraStatus.classList.add('active');
             cameraStatusText.textContent = 'Camera active';
             startBtn.innerHTML = '<i>⏹️</i> Stop Camera';
             captureBtn.disabled = false;
-            
-            // Show video and hide frozen canvas
             video.style.display = 'block';
             frozenCanvas.style.display = 'none';
-            topLabel.style.display = 'none';
-            bottomLabel.style.display = 'none';
-            document.getElementById('obstructionOverlay').classList.add('hidden');
-            
-            // Start drawing video to canvas (for visual feedback)
+            [topLabel, bottomLabel].forEach(el => el.style.display = 'none');
             drawVideoToCanvas();
-            
         } catch (err) {
-            console.error("Error accessing camera:", err);
             alert("Could not access camera: " + err.message);
         }
     }
 
-    // Stop webcam
     function stopWebcam() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
-        
+        if (stream) stream.getTracks().forEach(track => track.stop());
         isCameraActive = false;
         cameraStatus.classList.remove('active');
         cameraStatusText.textContent = 'Camera not active';
         startBtn.innerHTML = '<i>▶️</i> Start Camera';
         captureBtn.disabled = true;
-        
         if (!isFrozen) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            frozenCtx.clearRect(0, 0, frozenCanvas.width, frozenCanvas.height);
+            [ctx, frozenCtx].forEach(c => c.clearRect(0, 0, c.canvas.width, c.canvas.height));
             video.style.display = 'block';
             frozenCanvas.style.display = 'none';
-            topLabel.style.display = 'none';
-            bottomLabel.style.display = 'none';
+            [topLabel, bottomLabel].forEach(el => el.style.display = 'none');
         }
     }
 
-    // Draw video to canvas (this function is simpler now)
     function drawVideoToCanvas() {
         if (!isCameraActive || isFrozen) return;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        if (maskToggle.checked) {
-            applySkyMasking();
-        }
         requestAnimationFrame(drawVideoToCanvas);
     }
-    
-    // Create negative image from source canvas
-    function createNegativeImage(sourceCanvas, targetCanvas) {
-        const targetCtx = targetCanvas.getContext('2d');
-        targetCtx.drawImage(sourceCanvas, 0, 0, targetCanvas.width, targetCanvas.height);
-        const imageData = targetCtx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            data[i] = 255 - data[i];     // Red
-            data[i + 1] = 255 - data[i + 1]; // Green
-            data[i + 2] = 255 - data[i + 2]; // Blue
-        }
-        targetCtx.putImageData(imageData, 0, 0);
-    }
 
-    // Apply simple sky masking (upper portion of the image)
-    function applySkyMasking() {
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.6);
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.7)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height * 0.6);
-        ctx.fillStyle = 'white';
-        ctx.font = '16px Arial';
-        ctx.fillText('Sky Analysis Region', 10, 30);
-    }
-
-
-    // --- COMPLETELY REWRITTEN analyzeFrame FUNCTION ---
     async function analyzeFrame() {
         if (!isCameraActive || isAnalyzing) return;
         
         isAnalyzing = true;
         isFrozen = true;
+        captureBtn.disabled = true;
         const startTime = performance.now();
         
-        analysisStatus.classList.remove('active');
-        analysisStatusText.innerHTML = '<span class="loading"></span> Freezing frame...';
-        
-        // 1. Freeze the current frame
+        // 1. Freeze the frame
         frozenCtx.drawImage(video, 0, 0, frozenCanvas.width, frozenCanvas.height);
         video.style.display = 'none';
         frozenCanvas.style.display = 'block';
         topLabel.style.display = 'block';
-        createNegativeImage(frozenCanvas, canvas);
+        ctx.drawImage(frozenCanvas, 0, 0, canvas.width, canvas.height); // Copy to bottom canvas for now
         bottomLabel.style.display = 'block';
 
-        // 2. Get image data for the API
-        // We strip the data URL prefix to get the pure base64 string
-        const imageDataUrl = frozenCanvas.toDataURL('image/jpeg', 0.8);
-        const imageDataBase64 = imageDataUrl.split(',')[1];
-
-        // 3. Ask Gemini for approval
-        analysisStatusText.innerHTML = '<span class="loading"></span> Verifying sky image...';
-        const isApproved = await isSkyImageApproved(imageDataBase64);
-
-        if (!isApproved) {
-            analysisStatusText.textContent = 'Image rejected. Please point at the sky.';
-            predictionEl.textContent = "Analysis Failed: Obstruction Detected";
-            predictionEl.className = "prediction rain-likely"; // Use red for error
-            isAnalyzing = false;
-            // Optionally, unfreeze here or wait for user to restart
-            // stopWebcam(); // Or just leave it frozen
+        // 2. Fetch live weather data
+        const weatherData = await getCurrentWeather();
+        if (!weatherData) {
+            analysisStatusText.textContent = 'Could not fetch weather data. Please try again.';
+            resetAnalysisState();
             return;
         }
-
-        // 4. If approved, get the fused analysis
-        analysisStatusText.innerHTML = '<span class="loading"></span> Image approved. Analyzing weather...';
+        humidityEl.textContent = `${weatherData.humidity.toFixed(0)}%`;
+        cloudCoverEl.textContent = `${weatherData.cloudCover.toFixed(0)}%`;
+        temperatureEl.textContent = `${weatherData.temperature.toFixed(1)}°C`;
         
-        // Create some mock environmental data (in a real app, you'd fetch this from a weather API)
-        const mockWeatherData = {
-            humidity: (60 + Math.random() * 30).toFixed(0),
-            cloudCover: (40 + Math.random() * 50).toFixed(0),
-            temperature: (25 + Math.random() * 5).toFixed(0)
-        };
+        // 3. Get image data and send for analysis
+        const imageDataBase64 = frozenCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        const analysisResult = await getSmartAnalysis(imageDataBase64, weatherData);
+
+        if (!analysisResult) {
+            analysisStatusText.textContent = 'AI analysis failed. Please try again.';
+            resetAnalysisState();
+            return;
+        }
         
-        // Update the UI with the data we have
-        humidityEl.textContent = `${mockWeatherData.humidity}%`;
-        humidityBar.style.width = `${mockWeatherData.humidity}%`;
-        cloudCoverEl.textContent = `${mockWeatherData.cloudCover}%`;
-        cloudCoverBar.style.width = `${mockWeatherData.cloudCover}%`;
-        temperatureEl.textContent = `${mockWeatherData.temperature}°C`;
-
-        const analysisResult = await getFusedWeatherAnalysis(imageDataBase64, mockWeatherData);
-
-        // 5. Display the final result
-        predictionEl.textContent = analysisResult;
-        predictionEl.className = "prediction"; // Reset class to default
-        rainProbabilityEl.textContent = "N/A"; // Gemini gives text, not a number
-        rainProbabilityBar.style.width = `0%`; // Reset bar
+        // 4. Update UI with the structured JSON response
+        predictionEl.textContent = analysisResult.prediction_text;
+        rainProbabilityEl.textContent = `${analysisResult.rain_probability_percent}%`;
+        rainProbabilityBar.style.width = `${analysisResult.rain_probability_percent}%`;
+        cloudinessEl.textContent = `${analysisResult.cloud_coverage_percent}%`;
+        cloudinessBar.style.width = `${analysisResult.cloud_coverage_percent}%`;
+        confidenceEl.textContent = `${analysisResult.confidence_score_percent}%`;
+        confidenceBar.style.width = `${analysisResult.confidence_score_percent}%`;
 
         processingTimeEl.textContent = `${(performance.now() - startTime).toFixed(0)} ms`;
         analysisStatus.classList.add('active');
         analysisStatusText.textContent = 'Analysis complete.';
-        isAnalyzing = false;
-    }
-
-
-    // Event listeners
-    startBtn.addEventListener('click', () => {
-        if (isCameraActive) {
-            stopWebcam();
-        } else {
-            startWebcam();
-        }
-    });
-
-    captureBtn.addEventListener('click', () => {
-        analyzeFrame();
-    });
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-        cameraStatusText.textContent = 'Camera not active';
-        analysisStatusText.textContent = 'Ready for analysis';
-    });
-
-    // --- END OF NEW SCRIPT ---
-    </script>
-</body>
-</html>
+        resetAnalysisState(false); // Reset flags but keep button disabled
