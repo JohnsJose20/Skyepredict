@@ -404,7 +404,11 @@
 
     async function startWebcam() {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            // --- FIX: Made camera request more flexible to work on all devices ---
+            // Instead of requiring the 'environment' camera, we say it's 'ideal'.
+            const constraints = { video: { facingMode: { ideal: "environment" } } };
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
             video.srcObject = stream;
             await video.play();
             isCameraActive = true;
