@@ -492,4 +492,24 @@
         processingTimeEl.textContent = `${(performance.now() - startTime).toFixed(0)} ms`;
         analysisStatus.classList.add('active');
         analysisStatusText.textContent = 'Analysis complete.';
-        resetAnalysisState(false); // Reset flags but keep button disabled
+        resetAnalysisState(false); // Reset flags but keep button disabled until camera restart
+    }
+
+    function resetAnalysisState(enableButton = true) {
+        isAnalyzing = false;
+        if(enableButton) captureBtn.disabled = false;
+    }
+
+    // --- Event Listeners & Initialization ---
+    startBtn.addEventListener('click', () => {
+        if (isCameraActive) stopWebcam();
+        else startWebcam();
+    });
+    captureBtn.addEventListener('click', analyzeFrame);
+    document.addEventListener('DOMContentLoaded', () => {
+        cameraStatusText.textContent = 'Camera not active';
+        analysisStatusText.textContent = 'Ready for analysis';
+    });
+    </script>
+</body>
+</html>
